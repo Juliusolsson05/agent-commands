@@ -1,4 +1,5 @@
 import { program } from "commander";
+import { initCommand } from "./commands/init.js";
 
 program
   .name("agent-commands")
@@ -7,9 +8,10 @@ program
   )
   .version("0.0.1");
 
-// Commands will be registered here
-// import "./commands/init";
-// import "./commands/sync";
-// import "./commands/add";
+program
+  .command("init")
+  .description("Initialize agent-commands in this repo or globally")
+  .option("-g, --global", "Initialize global config at ~/.agent-commands/")
+  .action(initCommand);
 
 program.parse();
