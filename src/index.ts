@@ -30,6 +30,8 @@ program
   .command("add <name>")
   .description("Create a new command template")
   .option("-g, --global", "Add to global commands")
+  .option("-f, --from <path>", "Import command from an existing .md file")
+  .option("-c, --content <text>", "Set the command content inline")
   .action(addCommand);
 
 program

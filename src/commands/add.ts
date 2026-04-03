@@ -1,10 +1,16 @@
-import { join } from "path";
-import { existsSync, writeFileSync } from "fs";
+import { join, basename } from "path";
+import { existsSync, writeFileSync, readFileSync } from "fs";
 import chalk from "chalk";
 import { findProjectRoot, getCommandsDir, GLOBAL_COMMANDS_DIR } from "../lib/paths.js";
 import { ensureDir } from "../lib/fs-utils.js";
 
-export function addCommand(name: string, options: { global?: boolean }): void {
+interface AddOptions {
+  global?: boolean;
+  from?: string;
+  content?: string;
+}
+
+export function addCommand(name: string, options: AddOptions): void {
   const scope = options.global ? "global" : "project";
 
   let commandsDir: string;
@@ -29,14 +35,28 @@ export function addCommand(name: string, options: { global?: boolean }): void {
 
   ensureDir(commandsDir);
 
-  const template = `---
-description: ${cleanName} command
----
+  let fileContent: string;
 
-$ARGUMENTS
-`;
+  if (options.from) {
+    const sourcePath = options.from;
+    if (!existsSync(sourcePath)) {
+      console.log(chalk.red(`File not found: ${sourcePath}`));
+      return;
+    }
+    const sourceContent = readFileSync(sourcePath, "utf-8");
+    // If the source already has frontmatter, use it as-is
+    if (sourceContent.trimStart().startsWith("---")) {
+      fileContent = sourceContent;
+    } else {
+      fileContent = `---\ndescription: ${cleanName} command\n---\n\n${sourceContent}`;
+    }
+  } else if (options.content) {
+    fileContent = `---\ndescription: ${cleanName} command\n---\n\n${options.content}\n\n$ARGUMENTS\n`;
+  } else {
+    fileContent = `---\ndescription: ${cleanName} command\n---\n\n$ARGUMENTS\n`;
+  }
 
-  writeFileSync(filePath, template);
+  writeFileSync(filePath, fileContent);
   console.log(chalk.green(`✓ Created ${filePath}`));
-  console.log(chalk.dim("Edit the file to add your prompt, then run: agent-commands sync"));
+  console.log(chalk.dim("Sync with: agent-commands sync"));
 }
