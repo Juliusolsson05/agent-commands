@@ -34,4 +34,6 @@ export interface Adapter {
   getMcpConfigPath(scope: "project" | "global", projectRoot: string): string;
   readMcpConfig(scope: "project" | "global", projectRoot: string): Promise<Record<string, McpServer>>;
   writeMcpConfig(servers: Record<string, McpServer>, scope: "project" | "global", projectRoot: string): Promise<void>;
+  /** For adapters that sync commands via config (not files). Called instead of symlinking. */
+  syncCommand?(name: string, description: string, body: string, scope: "project" | "global", projectRoot: string): Promise<void>;
 }
