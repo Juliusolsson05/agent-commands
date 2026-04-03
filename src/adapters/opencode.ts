@@ -8,39 +8,48 @@ export const opencodeAdapter: Adapter = {
   id: "opencode",
   supportsCommands: true,
 
-  getCommandsDir() {
-    // OpenCode doesn't use a file-based commands directory
-    // Commands are synced via syncCommand() into the JSON config
-    return null;
+  getCommandsDir(scope, projectRoot) {
+    if (scope === "global") return join(homedir(), ".config", "opencode", "commands");
+    return join(projectRoot, ".opencode", "commands");
   },
 
   getMcpConfigPath(scope, projectRoot) {
-    if (scope === "global") return join(homedir(), ".config", "opencode", "config.json");
+    if (scope === "global") return join(homedir(), ".config", "opencode", "opencode.json");
     return join(projectRoot, "opencode.json");
   },
 
   async readMcpConfig(scope, projectRoot) {
     const path = this.getMcpConfigPath(scope, projectRoot);
-    const data = readJson(path) as { mcpServers?: Record<string, McpServer> };
-    return data.mcpServers ?? {};
+    const data = readJson(path) as { mcp?: Record<string, Record<string, unknown>> };
+    const mcp = data.mcp ?? {};
+    const result: Record<string, McpServer> = {};
+    for (const [name, cfg] of Object.entries(mcp)) {
+      const cmd = cfg.command;
+      if (Array.isArray(cmd) && cmd.length > 0) {
+        result[name] = {
+          name,
+          command: cmd[0] as string,
+          args: cmd.slice(1) as string[],
+          env: (cfg.environment as Record<string, string>) ?? {},
+        };
+      }
+    }
+    return result;
   },
 
   async writeMcpConfig(servers, scope, projectRoot) {
     const path = this.getMcpConfigPath(scope, projectRoot);
     const existing = readJson(path);
-    existing.mcpServers = {
-      ...(existing.mcpServers as Record<string, unknown> ?? {}),
-      ...servers,
-    };
-    writeJson(path, existing);
-  },
-
-  async syncCommand(name, description, body, scope, projectRoot) {
-    const path = this.getMcpConfigPath(scope, projectRoot);
-    const existing = readJson(path);
-    const commands = (existing.commands ?? {}) as Record<string, { description: string; prompt: string }>;
-    commands[name] = { description: description || `${name} command`, prompt: body };
-    existing.commands = commands;
+    const mcp = (existing.mcp ?? {}) as Record<string, unknown>;
+    for (const [name, server] of Object.entries(servers)) {
+      mcp[name] = {
+        type: "local",
+        command: [server.command, ...(server.args ?? [])],
+        environment: server.env ?? {},
+        enabled: true,
+      };
+    }
+    existing.mcp = mcp;
     writeJson(path, existing);
   },
 };
