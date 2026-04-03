@@ -107,6 +107,119 @@ export function writeYaml(path: string, data: Record<string, unknown>): void {
   writeFileSync(path, serializeSimpleYaml(data));
 }
 
+// --- TOML support ---
+
+export function writeToml(path: string, data: Record<string, unknown>): void {
+  ensureDir(dirname(path));
+  writeFileSync(path, serializeToml(data));
+}
+
+export function readToml(path: string): Record<string, unknown> {
+  if (!existsSync(path)) return {};
+  const text = readFileSync(path, "utf-8");
+  return parseSimpleToml(text);
+}
+
+function serializeToml(data: Record<string, unknown>, prefix = ""): string {
+  let out = "";
+  for (const [key, value] of Object.entries(data)) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === "object" && !Array.isArray(value)) {
+      const section = prefix ? `${prefix}.${key}` : key;
+      out += `[${section}]\n`;
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        if (typeof v === "object" && !Array.isArray(v) && v !== null) {
+          out += serializeToml({ [k]: v }, section);
+        } else {
+          out += `${k} = ${tomlValue(v)}\n`;
+        }
+      }
+      out += "\n";
+    } else {
+      out += `${key} = ${tomlValue(value)}\n`;
+    }
+  }
+  return out;
+}
+
+function tomlValue(v: unknown): string {
+  if (typeof v === "string") return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (Array.isArray(v)) return `[${v.map(tomlValue).join(", ")}]`;
+  if (typeof v === "object" && v !== null) {
+    const entries = Object.entries(v as Record<string, unknown>);
+    return `{ ${entries.map(([k, val]) => `${k} = ${tomlValue(val)}`).join(", ")} }`;
+  }
+  return `"${v}"`;
+}
+
+function parseSimpleToml(text: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  let currentSection = "";
+
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const sectionMatch = trimmed.match(/^\[(.+)\]$/);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      const parts = currentSection.split(".");
+      let obj = result;
+      for (const part of parts) {
+        if (!(part in obj)) obj[part] = {};
+        obj = obj[part] as Record<string, unknown>;
+      }
+      continue;
+    }
+
+    const kvMatch = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
+    if (kvMatch) {
+      const key = kvMatch[1];
+      const rawVal = kvMatch[2].trim();
+      const val = parseTomlValue(rawVal);
+
+      if (currentSection) {
+        const parts = currentSection.split(".");
+        let obj = result;
+        for (const part of parts) {
+          obj = obj[part] as Record<string, unknown>;
+        }
+        obj[key] = val;
+      } else {
+        result[key] = val;
+      }
+    }
+  }
+
+  return result;
+}
+
+function parseTomlValue(raw: string): unknown {
+  if (raw.startsWith('"') && raw.endsWith('"')) return raw.slice(1, -1);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  if (/^\d+$/.test(raw)) return parseInt(raw, 10);
+  if (raw.startsWith("[") && raw.endsWith("]")) {
+    const inner = raw.slice(1, -1).trim();
+    if (!inner) return [];
+    return inner.split(",").map(s => parseTomlValue(s.trim()));
+  }
+  if (raw.startsWith("{") && raw.endsWith("}")) {
+    const inner = raw.slice(1, -1).trim();
+    if (!inner) return {};
+    const result: Record<string, unknown> = {};
+    for (const pair of inner.split(",")) {
+      const [k, ...v] = pair.split("=");
+      if (k && v.length) result[k.trim()] = parseTomlValue(v.join("=").trim());
+    }
+    return result;
+  }
+  return raw;
+}
+
+// --- Git exclude ---
+
 const GIT_EXCLUDE_PATTERNS = [
   ".agent-mgr.yml",
   "commands/",
