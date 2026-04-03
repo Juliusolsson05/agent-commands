@@ -224,8 +224,10 @@ const GIT_EXCLUDE_PATTERNS = [
   ".agent-mgr.yml",
   "commands/",
   ".claude/commands/",
-  ".cursor/prompts/",
+  ".cursor/commands/",
   ".codex/",
+  ".opencode/commands/",
+  ".mcp.json",
   "opencode.json",
 ];
 
