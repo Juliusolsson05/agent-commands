@@ -6,7 +6,7 @@ You have access to \`agent-commands\` (alias: \`ac\`), a CLI tool that manages A
 
 ## How It Works
 
-Commands are markdown files stored in a single source directory (\`commands/\` in the project or \`~/.agent-commands/commands/\` globally). When synced, they get symlinked to each platform's expected directory (.claude/commands/, .cursor/prompts/, etc.).
+Commands are markdown files stored in source directories. When synced, they get symlinked to each platform's expected directory. Commands are merged from three scopes with priority: project > profile > global.
 
 ## Available Commands
 
@@ -22,11 +22,24 @@ Commands are markdown files stored in a single source directory (\`commands/\` i
 - \`ac add <name> --content "prompt text"\` — Create command with inline content
 - \`ac add <name> --global\` — Add to global commands
 - \`ac remove <name>\` — Remove command from source and all synced targets
-- \`ac list\` — Show all commands and their sync status per platform
+- \`ac list\` — Show all commands with scope and sync status per platform
 
 ### Syncing
-- \`ac sync\` — Distribute all commands to configured platform directories
-- \`ac sync --global\` — Sync global commands
+- \`ac sync\` — Merge and distribute project + profile + global commands
+- \`ac sync --global\` — Sync global commands only
+
+### Profiles
+- \`ac profile create <name>\` — Create a named command set
+- \`ac profile switch <name>\` — Activate a profile
+- \`ac profile list\` — Show all profiles and which is active
+- \`ac profile delete <name>\` — Delete a profile
+
+### Import from GitHub
+- \`ac sync-repo add <url>\` — Clone a repo and import its commands/ directory
+- \`ac sync-repo add <url> --profile <name>\` — Import into a specific profile
+- \`ac sync-repo update\` — Pull latest from all tracked repos
+- \`ac sync-repo list\` — Show tracked repos
+- \`ac sync-repo remove <url>\` — Stop tracking a repo
 
 ### MCP Server Management
 - \`ac mcp add\` — Interactive: add an MCP server config to selected platforms
@@ -38,6 +51,7 @@ Commands are markdown files stored in a single source directory (\`commands/\` i
 - \`ac hook remove\` — Remove the git hooks
 
 ### Help
+- \`ac help\` — Detailed help with workflow and examples
 - \`ac help-agent\` — Output this reference (for AI agents)
 
 ## Command File Format
@@ -56,11 +70,21 @@ $ARGUMENTS
 
 \`$ARGUMENTS\` gets replaced with whatever the user types after the slash command.
 
+## Command Priority (when syncing)
+
+1. Project commands (\`commands/\`) — highest priority
+2. Active profile commands (\`~/.agent-commands/profiles/<name>/commands/\`)
+3. Global commands (\`~/.agent-commands/commands/\`) — lowest priority
+
+Same filename = higher scope wins.
+
 ## Config Files
 
-- Project config: \`.agent-commands.yml\` (lists target platforms)
-- Global config: \`~/.agent-commands/config.yml\`
+- Project config: \`.agent-commands.yml\` (targets, overrides)
+- Global config: \`~/.agent-commands/config.yml\` (targets, active profile, tracked repos)
 - Source commands: \`commands/\` (project) or \`~/.agent-commands/commands/\` (global)
+- Profiles: \`~/.agent-commands/profiles/<name>/commands/\`
+- Repo cache: \`~/.agent-commands/repos/\`
 
 ## Supported Platforms
 
@@ -70,13 +94,6 @@ $ARGUMENTS
 | Cursor | ✓ (.cursor/prompts/) | ✓ (.cursor/mcp.json) |
 | Codex | ✗ | ✓ (.codex/mcp.json) |
 | OpenCode | ✗ | ✓ (opencode.json) |
-
-## Tips
-
-- Run \`ac sync\` after adding or editing commands
-- Use \`ac list\` to check if commands are in sync
-- Global commands (--global) are available across all repos
-- Project commands override global ones with the same name
 `;
 
 export function helpAgentCommand(): void {
