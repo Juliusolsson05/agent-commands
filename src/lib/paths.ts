@@ -35,3 +35,18 @@ export function getMcpSourcePath(scope: "project" | "global", projectRoot?: stri
   if (scope === "global") return GLOBAL_MCP_PATH;
   return join(projectRoot ?? process.cwd(), PROJECT_MCP_FILE);
 }
+
+export const GLOBAL_PROFILES_DIR = join(GLOBAL_DIR, "profiles");
+export const GLOBAL_REPOS_DIR = join(GLOBAL_DIR, "repos");
+
+export function getProfileDir(profileName: string): string {
+  return join(GLOBAL_PROFILES_DIR, profileName);
+}
+
+export function getProfileCommandsDir(profileName: string): string {
+  return join(GLOBAL_PROFILES_DIR, profileName, "commands");
+}
+
+export function getRepoDir(owner: string, name: string): string {
+  return join(GLOBAL_REPOS_DIR, `${owner}-${name}`);
+}
