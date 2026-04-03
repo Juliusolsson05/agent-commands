@@ -1,5 +1,13 @@
 import { program } from "commander";
 import { initCommand } from "./commands/init.js";
+import { addCommand } from "./commands/add.js";
+import { removeCommand } from "./commands/remove.js";
+import { syncCommand } from "./commands/sync.js";
+import { listCommand } from "./commands/list.js";
+import { mcpAddCommand } from "./commands/mcp-add.js";
+import { mcpRemoveCommand } from "./commands/mcp-remove.js";
+import { mcpListCommand } from "./commands/mcp-list.js";
+import { hookInstallCommand, hookRemoveCommand } from "./commands/hook.js";
 
 program
   .name("agent-commands")
@@ -13,5 +21,65 @@ program
   .description("Initialize agent-commands in this repo or globally")
   .option("-g, --global", "Initialize global config at ~/.agent-commands/")
   .action(initCommand);
+
+program
+  .command("add <name>")
+  .description("Create a new command template")
+  .option("-g, --global", "Add to global commands")
+  .action(addCommand);
+
+program
+  .command("remove <name>")
+  .description("Remove a command from source and all targets")
+  .option("-g, --global", "Remove from global commands")
+  .action(removeCommand);
+
+program
+  .command("sync")
+  .description("Sync all commands to configured targets")
+  .option("-g, --global", "Sync global commands")
+  .action(syncCommand);
+
+program
+  .command("list")
+  .description("Show commands and their sync status")
+  .option("-g, --global", "List global commands")
+  .action(listCommand);
+
+const mcp = program
+  .command("mcp")
+  .description("Manage MCP server configs across tools");
+
+mcp
+  .command("add")
+  .description("Add an MCP server to configured targets")
+  .option("-g, --global", "Add to global MCP config")
+  .action(mcpAddCommand);
+
+mcp
+  .command("remove <name>")
+  .description("Remove an MCP server from all targets")
+  .option("-g, --global", "Remove from global MCP config")
+  .action(mcpRemoveCommand);
+
+mcp
+  .command("list")
+  .description("List MCP servers across targets")
+  .option("-g, --global", "List global MCP servers")
+  .action(mcpListCommand);
+
+const hook = program
+  .command("hook")
+  .description("Manage git hooks for auto-sync");
+
+hook
+  .command("install")
+  .description("Install post-checkout and post-merge hooks")
+  .action(hookInstallCommand);
+
+hook
+  .command("remove")
+  .description("Remove agent-commands git hooks")
+  .action(hookRemoveCommand);
 
 program.parse();
