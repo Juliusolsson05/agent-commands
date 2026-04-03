@@ -106,3 +106,29 @@ export function writeYaml(path: string, data: Record<string, unknown>): void {
   ensureDir(dirname(path));
   writeFileSync(path, serializeSimpleYaml(data));
 }
+
+export function parseFrontmatter(content: string): { description: string; body: string } {
+  const trimmed = content.trimStart();
+  if (!trimmed.startsWith("---")) {
+    return { description: "", body: content.trim() };
+  }
+
+  const endIndex = trimmed.indexOf("---", 3);
+  if (endIndex === -1) {
+    return { description: "", body: content.trim() };
+  }
+
+  const frontmatter = trimmed.slice(3, endIndex).trim();
+  const body = trimmed.slice(endIndex + 3).trim();
+
+  let description = "";
+  for (const line of frontmatter.split("\n")) {
+    const match = line.match(/^description:\s*(.+)$/);
+    if (match) {
+      description = match[1].trim();
+      break;
+    }
+  }
+
+  return { description, body };
+}
