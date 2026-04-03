@@ -14,8 +14,8 @@ export const claudeCodeAdapter: Adapter = {
   },
 
   getMcpConfigPath(scope, projectRoot) {
-    if (scope === "global") return join(homedir(), ".claude", "mcp.json");
-    return join(projectRoot, ".claude", "mcp.json");
+    if (scope === "global") return join(homedir(), ".claude.json");
+    return join(projectRoot, ".mcp.json");
   },
 
   async readMcpConfig(scope, projectRoot) {
