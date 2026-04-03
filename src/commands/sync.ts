@@ -4,7 +4,7 @@ import chalk from "chalk";
 import { findProjectRoot, getCommandsDir, GLOBAL_COMMANDS_DIR, getProfileCommandsDir } from "../lib/paths.js";
 import { loadConfig } from "../lib/config.js";
 import { getAdapters } from "../adapters/index.js";
-import { listMarkdownFiles, syncFile, parseFrontmatter } from "../lib/fs-utils.js";
+import { listMarkdownFiles, syncFile, parseFrontmatter, updateGitExclude } from "../lib/fs-utils.js";
 import type { SyncResult } from "../adapters/types.js";
 
 interface CommandSource {
@@ -118,6 +118,9 @@ export async function syncCommand(options: { global?: boolean }): Promise<void> 
       failed++;
     }
   }
+
+  // If user opted into gitignore, ensure new patterns are covered
+  updateGitExclude(root);
 
   console.log("");
   console.log(`Synced ${chalk.green(String(synced))} command(s) to ${targetAdapters.filter(a => a.supportsCommands).length} target(s)`);

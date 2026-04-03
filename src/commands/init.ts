@@ -1,10 +1,10 @@
 import { join } from "path";
-import { existsSync, appendFileSync, readFileSync } from "fs";
+import { existsSync } from "fs";
 import chalk from "chalk";
 import { checkbox, confirm } from "@inquirer/prompts";
 import { ALL_TARGET_IDS } from "../adapters/index.js";
 import { saveConfig } from "../lib/config.js";
-import { ensureDir } from "../lib/fs-utils.js";
+import { ensureDir, addGitExclude } from "../lib/fs-utils.js";
 import {
   GLOBAL_DIR,
   GLOBAL_COMMANDS_DIR,
@@ -79,33 +79,13 @@ export async function initCommand(options: InitOptions): Promise<void> {
       const shouldGitignore = options.gitignore !== undefined
         ? options.gitignore
         : await confirm({
-            message: "Gitignore the generated platform command directories?",
+            message: "Gitignore agent-mgr config and generated files?",
             default: true,
           });
 
       if (shouldGitignore) {
-        const excludePath = join(cwd, ".git", "info", "exclude");
-        const excludeContent = existsSync(excludePath) ? readFileSync(excludePath, "utf-8") : "";
-        const linesToAdd: string[] = [];
-
-        for (const target of targets) {
-          const dirs: Record<string, string> = {
-            "claude-code": ".claude/commands/",
-            cursor: ".cursor/prompts/",
-            codex: ".codex/",
-            opencode: "",
-          };
-          const dir = dirs[target];
-          if (dir && !excludeContent.includes(dir)) {
-            linesToAdd.push(dir);
-          }
-        }
-
-        if (linesToAdd.length > 0) {
-          const addition = "\n# agent-mgr generated dirs\n" + linesToAdd.join("\n") + "\n";
-          appendFileSync(excludePath, addition);
-          console.log(chalk.green("✓ Added generated dirs to .git/info/exclude"));
-        }
+        addGitExclude(cwd);
+        console.log(chalk.green("✓ Added agent-mgr files to .git/info/exclude"));
       }
     }
   }
