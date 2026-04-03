@@ -4,7 +4,7 @@ import chalk from "chalk";
 import { findProjectRoot, getCommandsDir, GLOBAL_COMMANDS_DIR, getProfileCommandsDir } from "../lib/paths.js";
 import { loadConfig } from "../lib/config.js";
 import { getAdapters } from "../adapters/index.js";
-import { listMarkdownFiles, syncFile, parseFrontmatter, updateGitExclude } from "../lib/fs-utils.js";
+import { listMarkdownFiles, syncFile, parseFrontmatter, updateGitExclude, removeFile } from "../lib/fs-utils.js";
 import type { SyncResult } from "../adapters/types.js";
 
 interface CommandSource {
@@ -116,6 +116,23 @@ export async function syncCommand(options: { global?: boolean }): Promise<void> 
     } else {
       console.log(chalk.red(`✗ ${r.command} → ${r.target}: ${r.reason}`));
       failed++;
+    }
+  }
+
+  // Prune stale commands from target dirs
+  const sourceFileNames = new Set(commands.map(c => c.file));
+  for (const adapter of targetAdapters) {
+    if (!adapter.supportsCommands) continue;
+    const targetDir = adapter.getCommandsDir("project", root);
+    if (!targetDir) continue;
+    const existingFiles = listMarkdownFiles(targetDir);
+    for (const existing of existingFiles) {
+      if (!sourceFileNames.has(existing)) {
+        const stalePath = join(targetDir, existing);
+        if (removeFile(stalePath)) {
+          console.log(chalk.dim(`  Pruned ${existing} from ${adapter.name}`));
+        }
+      }
     }
   }
 
