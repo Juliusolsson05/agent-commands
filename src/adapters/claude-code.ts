@@ -27,10 +27,11 @@ export const claudeCodeAdapter: Adapter = {
   async writeMcpConfig(servers, scope, projectRoot) {
     const path = this.getMcpConfigPath(scope, projectRoot);
     const existing = readJson(path);
-    existing.mcpServers = {
-      ...(existing.mcpServers as Record<string, unknown> ?? {}),
-      ...servers,
-    };
+    const mcpServers = (existing.mcpServers as Record<string, unknown>) ?? {};
+    for (const [key, { command, args, env }] of Object.entries(servers)) {
+      mcpServers[key] = { command, args: args ?? [], env: env ?? {} };
+    }
+    existing.mcpServers = mcpServers;
     writeJson(path, existing);
   },
 };
